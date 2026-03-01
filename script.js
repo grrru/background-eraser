@@ -15,6 +15,11 @@ class BackgroundEraser {
         this.loadingOverlay = document.getElementById('loading-overlay');
         
         // Controls
+        this.toolRadios = document.querySelectorAll('input[name="tool"]');
+        this.wandControls = document.getElementById('wand-controls');
+        this.eraserControls = document.getElementById('eraser-controls');
+        this.eraserSizeSlider = document.getElementById('eraser-size-slider');
+        this.eraserSizeValue = document.getElementById('eraser-size-value');
         this.toleranceSlider = document.getElementById('tolerance-slider');
         this.toleranceValue = document.getElementById('tolerance-value');
         this.undoBtn = document.getElementById('undo-btn');
@@ -26,6 +31,9 @@ class BackgroundEraser {
         this.zoomLevel = document.getElementById('zoom-level');
         
         // State
+        this.currentTool = 'wand';
+        this.isDrawing = false;
+        this.eraserSize = 20;
         this.originalImageData = null;
         this.history = [];
         this.maxHistory = 20;
@@ -64,8 +72,37 @@ class BackgroundEraser {
         });
         
         // Canvas click
-        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        this.canvas.addEventListener('click', (e) => {
+            if (this.currentTool === 'wand') this.handleCanvasClick(e);
+        });
         
+        // Eraser events
+        this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+        this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+        this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+        this.canvas.addEventListener('mouseleave', () => this.stopDrawing());
+        
+        // Touch support for Eraser
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (this.currentTool === 'eraser') e.preventDefault();
+            this.startDrawing(e.touches[0]);
+        }, { passive: false });
+        this.canvas.addEventListener('touchmove', (e) => {
+            if (this.currentTool === 'eraser') e.preventDefault();
+            this.draw(e.touches[0]);
+        }, { passive: false });
+        this.canvas.addEventListener('touchend', () => this.stopDrawing());
+        
+        // Tools
+        this.toolRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => this.handleToolChange(e));
+        });
+        
+        this.eraserSizeSlider.addEventListener('input', (e) => {
+            this.eraserSize = parseInt(e.target.value);
+            this.eraserSizeValue.textContent = this.eraserSize;
+        });
+
         // Controls
         this.toleranceSlider.addEventListener('input', (e) => {
             this.tolerance = parseInt(e.target.value);
@@ -159,13 +196,69 @@ class BackgroundEraser {
         this.loadingOverlay.classList.add('hidden');
     }
     
-    handleCanvasClick(e) {
+    handleToolChange(e) {
+        this.currentTool = e.target.value;
+        if (this.currentTool === 'wand') {
+            this.wandControls.classList.remove('hidden');
+            this.eraserControls.classList.add('hidden');
+        } else {
+            this.wandControls.classList.add('hidden');
+            this.eraserControls.classList.remove('hidden');
+        }
+    }
+    
+    getCanvasPosition(clientX, clientY) {
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         
-        const x = Math.floor((e.clientX - rect.left) * scaleX);
-        const y = Math.floor((e.clientY - rect.top) * scaleY);
+        return {
+            x: Math.floor((clientX - rect.left) * scaleX),
+            y: Math.floor((clientY - rect.top) * scaleY)
+        };
+    }
+    
+    startDrawing(e) {
+        if (this.currentTool !== 'eraser') return;
+        
+        this.isDrawing = true;
+        this.saveToHistory();
+        
+        const pos = this.getCanvasPosition(e.clientX, e.clientY);
+        
+        this.ctx.globalCompositeOperation = 'destination-out';
+        this.ctx.lineWidth = this.eraserSize;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x, pos.y);
+        
+        // Draw a dot if just clicking
+        this.ctx.lineTo(pos.x, pos.y);
+        this.ctx.stroke();
+    }
+    
+    draw(e) {
+        if (!this.isDrawing || this.currentTool !== 'eraser') return;
+        
+        const pos = this.getCanvasPosition(e.clientX, e.clientY);
+        this.ctx.lineTo(pos.x, pos.y);
+        this.ctx.stroke();
+    }
+    
+    stopDrawing() {
+        if (!this.isDrawing || this.currentTool !== 'eraser') return;
+        
+        this.isDrawing = false;
+        this.ctx.closePath();
+        this.ctx.globalCompositeOperation = 'source-over';
+    }
+    
+    handleCanvasClick(e) {
+        const pos = this.getCanvasPosition(e.clientX, e.clientY);
+        const x = pos.x;
+        const y = pos.y;
         
         // Validate coordinates
         if (x < 0 || x >= this.canvas.width || y < 0 || y >= this.canvas.height) {

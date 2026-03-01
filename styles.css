@@ -379,6 +379,59 @@ body::before {
     margin-bottom: var(--spacing-md);
 }
 
+/* Tool Selector */
+.tool-selector {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    background: var(--color-bg-primary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.tool-option {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+
+.tool-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.tool-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.tool-option input[type="radio"]:checked+.tool-btn {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.tool-option input[type="radio"]:focus-visible+.tool-btn {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
 .control-group {
     display: flex;
     flex-direction: column;
@@ -404,6 +457,7 @@ body::before {
 /* Range Slider */
 input[type="range"] {
     -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     height: 6px;
     background: var(--color-bg-tertiary);
@@ -414,6 +468,7 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     width: 20px;
     height: 20px;
     background: var(--gradient-primary);
